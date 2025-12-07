@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Products CRUD Demo</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-8">
+
+  <div class="max-w-3xl mx-auto bg-white shadow-lg rounded-xl p-6">
+    <h1 class="text-3xl font-bold mb-6 text-center">Products CRUD Demo</h1>
+
+    <!-- Add Product Form -->
+    <h2 class="text-xl font-semibold mb-2">Add New Product</h2>
+    <form id="productForm" class="grid gap-3 mb-6">
+      <input id="name" type="text" placeholder="Product Name" class="border p-2 rounded" required />
+      <input id="price" type="number" step="0.01" placeholder="Price" class="border p-2 rounded" required />
+      <textarea id="description" placeholder="Description (optional)" class="border p-2 rounded"></textarea>
+      <button class="bg-blue-600 text-white py-2 rounded hover:bg-blue-700">Create Product</button>
+    </form>
+
+    <hr class="my-6">
+
+    <!-- Products List -->
+    <h2 class="text-xl font-semibold mb-4">All Products</h2>
+    <div id="productsList" class="space-y-4"></div>
+
+  </div>
+
+<script>
+  const API_BASE_URL = "internal-tta-backend-load-balancer-341303367.us-east-1.elb.amazonaws.com/api/products/";
+
+  // Load products immediately when page loads
+  document.addEventListener("DOMContentLoaded", loadProducts);
+
+  // CREATE product
+  document.getElementById("productForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const product = {
+      name: document.getElementById("name").value,
+      price: document.getElementById("price").value,
+      description: document.getElementById("description").value,
+    };
+
+    await fetch(API_BASE_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(product),
+    });
+
+    e.target.reset();
+    loadProducts();
+  });
+
+  // READ – fetch products
+  async function loadProducts() {
+    const res = await fetch(API_BASE_URL);
+    const data = await res.json();
+
+    const container = document.getElementById("productsList");
+    container.innerHTML = "";
+
+    data.forEach((product) => {
+      const div = document.createElement("div");
+      div.className = "p-4 bg-gray-50 rounded shadow";
+
+      div.innerHTML = `
+        <div class="flex justify-between items-center">
+          <div>
+            <h3 class="text-lg font-bold">${product.name}</h3>
+            <p class="text-gray-700">$${product.price}</p>
+            <p class="text-gray-500">${product.description || "No description"}</p>
+          </div>
+
+          <div class="flex gap-2">
+            <button onclick="editProduct(${product.id})"
+                    class="bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600">
+              Edit
+            </button>
+
+            <button onclick="deleteProduct(${product.id})"
+                    class="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700">
+              Delete
+            </button>
+          </div>
+        </div>
+
+        <div id="edit-${product.id}" class="hidden mt-4">
+          <input id="edit-name-${product.id}" value="${product.name}" class="border p-1 rounded w-full mb-2">
+          <input id="edit-price-${product.id}" value="${product.price}" class="border p-1 rounded w-full mb-2">
+          <textarea id="edit-description-${product.id}" class="border p-1 rounded w-full mb-2">${product.description || ""}</textarea>
+
+          <button onclick="updateProduct(${product.id})"
+                  class="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700">
+            Save
+          </button>
+        </div>
+      `;
+
+      container.appendChild(div);
+    });
+  }
+
+  // SHOW edit form
+  function editProduct(id) {
+    const box = document.getElementById(`edit-${id}`);
+    box.classList.toggle("hidden");
+  }
+
+  // UPDATE product
+  async function updateProduct(id) {
+    const updated = {
+      name: document.getElementById(`edit-name-${id}`).value,
+      price: document.getElementById(`edit-price-${id}`).value,
+      description: document.getElementById(`edit-description-${id}`).value,
+    };
+
+    await fetch(API_BASE_URL + id + "/", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(updated),
+    });
+
+    loadProducts();
+  }
+
+  // DELETE product
+  async function deleteProduct(id) {
+    await fetch(API_BASE_URL + id + "/", { method: "DELETE" });
+    loadProducts();
+  }
+</script>
+
+</body>
+</html>
